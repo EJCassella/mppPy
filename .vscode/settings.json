@@ -1,0 +1,9 @@
+ 
+{
+  //autoDocString settings
+  "autoDocstring.docstringFormat": "google",
+  // Python settings
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ],
+}
