@@ -17,6 +17,7 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.ruff]
+extend-exclude = [".venv"]
 line-length = 120
 
 [tool.ruff.format]
