@@ -3,8 +3,9 @@
     "ms-python.python",
     "ms-python.vscode-pylance",
     "charliermarsh.ruff",
-    "GitHub.copilot",
     "tamasfe.even-better-toml",
     "njpwerner.autodocstring",
+    "DavidAnson.vscode-markdownlint",
+    "esbenp.prettier-vscode"
   ]
  }
