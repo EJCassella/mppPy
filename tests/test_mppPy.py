@@ -1,6 +1,6 @@
 import pytest
 
-from main import sample_func
+from mppPy import sample_func
 
 
 @pytest.mark.parametrize("int1, int2, expected", [(2, 7, 9), (1, 3, 4), (1, 1, 2), (-1, 3, 2)])
