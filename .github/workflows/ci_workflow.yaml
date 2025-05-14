@@ -1,0 +1,26 @@
+name: CI_workflow
+
+on: [push]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install uv with caching
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup python
+        run: uv python install 3.12
+
+      - name: Run linting tests
+        run: |
+          uv run pytest
+          uv run ruff check
