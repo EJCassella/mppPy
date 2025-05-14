@@ -1,5 +1,5 @@
 def sample_func(a: int, b: int) -> int:
-	return a - b
+	return a + b
 
 
 def main() -> None:
