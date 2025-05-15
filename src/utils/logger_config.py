@@ -1,9 +1,18 @@
 import logging
+from enum import Enum
 
 
-def setup_logger(logfile: str | None = None) -> logging.Logger:
+class LogLevel(Enum):
+	DEBUG = logging.DEBUG
+	INFO = logging.INFO
+	WARNING = logging.WARNING
+	ERROR = logging.ERROR
+	CRITICAL = logging.CRITICAL
+
+
+def setup_logger(logfile: str | None = None, level: LogLevel = LogLevel.INFO) -> logging.Logger:
 	logger = logging.getLogger("mppPy")
-	logger.setLevel(logging.INFO)
+	logger.setLevel(level.value)
 
 	formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d - %H:%M:%S")
 
