@@ -7,15 +7,11 @@ from utils.parser import parse_arguments
 @pytest.mark.parametrize(
 	"command, tracking_time_seconds, device_area_cm2, gpib_address, shutter",
 	[
-		# no params
-		("", None, None, None, False),
-		# each param
-		("-t 10", 10, None, None, False),
-		("-a 0.1", None, 0.1, None, False),
-		("-g 20", None, None, "20", False),
-		("-s", None, None, None, True),
+		("10 0.1", 10, 0.1, None, False),
+		("10 0.1 -g 20", 10, 0.1, "20", False),
+		("10 0.1 -s", 10, 0.1, None, True),
 		# all params
-		("-t 10 -a 0.1 -g 20 -s", 10, 0.1, "20", True),
+		("10 0.1 -g 20 -s", 10, 0.1, "20", True),
 		# wrong param type
 		# ("-t abc", None, None, None, False),
 	],
@@ -35,9 +31,11 @@ def test_parse_arguments_accepts_valid_inputs(
 @pytest.mark.parametrize(
 	"command, tracking_time_seconds, device_area_cm2, gpib_address, shutter",
 	[
-		("-t abc", 10, None, None, False),
-		("-t 0.1", 10, None, None, False),
-		("-a abc", None, 0.1, None, False),
+		# no params
+		("", None, None, None, False),
+		("abc 0.1", None, 0.1, None, False),
+		("0.1 0.1", None, 0.1, None, False),
+		("abc", None, None, None, False),
 	],
 )
 def test_parse_arguments_fails_with_invalid_inputs(

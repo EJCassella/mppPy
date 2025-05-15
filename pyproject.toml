@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Maximum power point tracking for PV devices using GPIB connected sourcemeter and optional shutter control."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.11.4",
+]
 
 [dependency-groups]
 dev = [
