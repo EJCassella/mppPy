@@ -14,9 +14,10 @@ class UserSetting(BaseModel):
 
 	@field_validator("gpib_address", mode="after")
 	@classmethod
-	def validate_tracking_time(cls, v: str) -> str:
-		if not VALID_GPIB_ADDRESS_REGEX.match(v):
-			raise ValueError(
-				f"GPIB address '{v}' is invalid. Should be a two digit number, typically between 0 and 30."
-			)
+	def validate_tracking_time(cls, v: str | None) -> str | None:
+		if v:
+			if not VALID_GPIB_ADDRESS_REGEX.match(v):
+				raise ValueError(
+					f"GPIB address '{v}' is invalid. Should be a two digit number, typically between 0 and 30."
+				)
 		return v

@@ -2,7 +2,7 @@ import sys
 
 from utils.logger_config import setup_logger
 from utils.parser import parse_arguments
-from core.core import UserSetting
+from utils.validator import UserSetting
 
 from pydantic import ValidationError
 
