@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 def main() -> None:
 	args = parse_arguments(sys.argv[1:])
+
 	try:
 		tracker_config = UserSetting(
 			tracking_time_seconds=args.tracking_time_seconds,
@@ -17,16 +18,33 @@ def main() -> None:
 			shutter=args.shutter,
 		)
 		print(tracker_config)
+
 	except ValidationError as e:
 		print(f"The tracker configuration settings could not be validated: {e}")
+		sys.exit(1)
 
 	logger = setup_logger()
 	logger.info("Log initiated.")
 
 	# use args to setup hardware (sourcemeter and shutter[opt])
-	# run tracking algorithm
-	# plotting and logging
-	# shutdown equipment
+
+
+""" 
+try:
+	open keithley context using gpib address
+		if shutter, open shutter using context manager
+			run mpptracker fed with tracker config options (keithley, shutter, tracking_time, cell_area)
+		else
+			run mpptracker fed with tracker config options (keithley, shutter, tracking_time, cell_area)
+except:
+	kethley error
+except:
+	shutter error
+
+"""
+# run tracking algorithm
+# plotting and logging
+# shutdown equipment
 
 
 if __name__ == "__main__":
