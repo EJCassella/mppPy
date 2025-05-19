@@ -8,12 +8,12 @@ VALID_GPIB_ADDRESS_REGEX = re.compile(r"^[0-9]{1,2}$")
 class UserSetting(BaseModel):
 	tracking_time_seconds: int = Field(gt=0)
 	device_area_cm2: float = Field(gt=0)
-	gpib_address: str
+	gpib_address: str | None
 	shutter: bool
 
 	@field_validator("gpib_address", mode="after")
 	@classmethod
-	def validate_tracking_time(cls, v: str | None) -> str | None:
+	def validate_gpib_address(cls, v: str | None) -> str | None:
 		if v:
 			if not VALID_GPIB_ADDRESS_REGEX.match(v):
 				raise ValueError(

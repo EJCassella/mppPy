@@ -13,12 +13,13 @@ from pydantic import ValidationError
 		(10, 1, "101", False),
 		(10, 1, "abc", False),
 		(10, 1, "x99", False),
+		(10, 1, "None", False),
 	],
 )
 def test_user_setting_validation_fails_with_invalid_entries(
 	tracking_time_seconds: int,
 	device_area_cm2: float,
-	gpib_address: str,
+	gpib_address: str | None,
 	shutter: bool,
 ) -> None:
 	with pytest.raises(ValidationError):
