@@ -1,16 +1,42 @@
+import pyvisa as visa
+
+from typing import Optional
+from types import TracebackType
+
 from controllers.interfaces import SourcemeterContext, SourcemeterController, sourcemeterOutput, sweepDirection
+
+from utils.logger_config import setup_logger
+
+logger = setup_logger()
 
 
 class K2400Context(SourcemeterContext):
-	def __init__(self, address: str):
-		self.address = address
+	def __init__(self, address: Optional[str]):
+		if address:
+			self.address = "GPIB0::" + address + "::INSTR"
+		else:
+			raise ValueError(
+				"Keithley GPIB connection could not be initiated without a provided GPIB address. Run mppPy.py -h for more information."
+			)
 		self.resource = None
 
-	def __enter__(self):
-		pass
+	def __enter__(self) -> visa.resources.Resource | None:
+		rm = visa.ResourceManager()
+		try:
+			self.resource = rm.open_resource(resource_name=self.address, timeout=60000, _read_termination="\n")
+			return self.resource
+		except ValueError as e:
+			logger.info("Keithley resource could not be acquired at address {self.address}: {e}.")
 
-	def __exit__(self):
-		pass
+	def __exit__(
+		self,
+		exc_type: type[BaseException] | None,
+		exc_val: BaseException | None,
+		exc_tb: TracebackType | None,
+	) -> None:
+		if self.resource:
+			self.resource.close()
+			logger.info("Released Keithley at address {self.address}.")
 
 
 class K2400Controller(SourcemeterController):

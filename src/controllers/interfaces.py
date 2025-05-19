@@ -1,5 +1,8 @@
+import pyvisa as visa
+
 from abc import ABC, abstractmethod
 from enum import Enum
+from types import TracebackType
 
 
 class sourcemeterOutput(Enum):
@@ -20,11 +23,16 @@ class SourcemeterContext(ABC):
 		self.resource = None
 
 	@abstractmethod
-	def __enter__(self):
+	def __enter__(self) -> visa.resources.Resource | None:
 		pass
 
 	@abstractmethod
-	def __exit__(self):
+	def __exit__(
+		self,
+		exc_type: type[BaseException] | None,
+		exc_val: BaseException | None,
+		exc_tb: TracebackType | None,
+	) -> None:
 		pass
 
 
@@ -69,5 +77,10 @@ class ShutterContext(ABC):
 		pass
 
 	@abstractmethod
-	def __exit__(self):
+	def __exit__(
+		self,
+		exc_type: type[BaseException] | None,
+		exc_val: BaseException | None,
+		exc_tb: TracebackType | None,
+	):
 		pass
