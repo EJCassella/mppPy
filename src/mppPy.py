@@ -4,7 +4,7 @@ from utils.logger_config import setup_logger
 from utils.parser import parse_arguments
 from utils.validator import UserSetting
 
-from controllers.K2400 import K2400Context, K2400Controller
+from controllers.K2400 import K2400Context
 
 from pydantic import ValidationError
 
@@ -22,7 +22,7 @@ def main() -> None:
 		print(tracker_config)
 
 	except ValidationError as e:
-		print(f"The tracker configuration settings could not be validated: {e}")
+		print(f"The tracker configuration settings could not be validated: {e}.")
 		sys.exit(1)
 
 	logger = setup_logger()

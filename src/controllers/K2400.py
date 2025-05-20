@@ -1,4 +1,5 @@
 import pyvisa as visa
+import sys
 
 from typing import Optional
 from types import TracebackType
@@ -25,8 +26,9 @@ class K2400Context(SourcemeterContext):
 		try:
 			self.resource = rm.open_resource(resource_name=self.address, timeout=60000, _read_termination="\n")
 			return self.resource
-		except ValueError as e:
-			logger.info("Keithley resource could not be acquired at address {self.address}: {e}.")
+		except visa.VisaIOError as e:
+			logger.error(f"Keithley resource could not be acquired at address {self.address}: {e}.")
+			sys.exit(1)
 
 	def __exit__(
 		self,
