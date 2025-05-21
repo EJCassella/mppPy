@@ -5,11 +5,17 @@ from utils.parser import parse_arguments
 from utils.validator import UserSetting
 
 from pyvisa import VisaIOError
+from nidaqmx.errors import DaqError  # type: ignore
 
-from controllers.K2400 import K2400Context
-# from controllers.dummyK2400 import dummyK2400Context
+# from controllers.K2400 import K2400Context
+# from controllers.shutterUSB6501 import shutterUSB6501
+
+from controllers.dummyK2400 import dummyK2400Context
+from controllers.dummyShutter import dummyShutter
 
 from pydantic import ValidationError
+
+from contextlib import ExitStack
 
 
 def main() -> None:
@@ -32,28 +38,29 @@ def main() -> None:
 
 	# use args to setup hardware (sourcemeter and shutter[opt])
 	try:
-		with K2400Context(address=tracker_config.gpib_address):
+		with ExitStack() as stack:
+			stack.enter_context(dummyK2400Context(address=tracker_config.gpib_address))
 			logger.info("Keithley initiated.")
+
+			if tracker_config.shutter:
+				stack.enter_context(dummyShutter(enabled=tracker_config.shutter))
+				logger.info("Shutter initiated.")
+			else:
+				logger.info("Shutter control disabled.")
+
+			# TO DO
+			# do some maximum power point tracking....
+
 	except VisaIOError:
 		logger.error("Keithley communication error has occured. Exiting.")
+	except DaqError:
+		logger.error("Shutter communication error has occured. Exiting.")
+	except Exception as e:
+		logger.error(f"An unexpected error has occured: {e}")
 
 
-""" 
-try:
-	open keithley context using gpib address
-		if shutter, open shutter using context manager
-			run mpptracker fed with tracker config options (keithley, shutter, tracking_time, cell_area)
-		else
-			run mpptracker fed with tracker config options (keithley, shutter, tracking_time, cell_area)
-except:
-	kethley error
-except:
-	shutter error
-
-"""
-# run tracking algorithm
-# plotting and logging
-# shutdown equipment
+# TO DO
+# plotting and logging data
 
 
 if __name__ == "__main__":

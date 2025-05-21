@@ -5,6 +5,8 @@ from types import TracebackType
 from pyvisa.resources import MessageBasedResource
 from typing import Optional
 
+from nidaqmx import Task  # type: ignore
+
 
 class sourcemeterOutput(Enum):
 	CURRENT = 1
@@ -19,7 +21,7 @@ class sweepDirection(Enum):
 
 class SourcemeterContext(ABC):
 	@abstractmethod
-	def __init__(self, address: str):
+	def __init__(self, address: str) -> None:
 		self.address = address
 		self.resource = None
 
@@ -73,7 +75,11 @@ class SourcemeterController(ABC):
 
 class ShutterContext(ABC):
 	@abstractmethod
-	def __enter__(self):
+	def __init__(self, enabled: bool) -> None:
+		pass
+
+	@abstractmethod
+	def __enter__(self) -> Optional[Task]:
 		pass
 
 	@abstractmethod
@@ -82,5 +88,5 @@ class ShutterContext(ABC):
 		exc_type: type[BaseException] | None,
 		exc_val: BaseException | None,
 		exc_tb: TracebackType | None,
-	):
+	) -> None:
 		pass
