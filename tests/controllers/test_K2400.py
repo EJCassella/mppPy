@@ -72,13 +72,41 @@ def test_K2400context_enter_handles_VISAIOerror(
 # Testing __exit__()
 
 
-def test_K2400context_exit_releases_resource_and_logs():
-	pass
+def test_K2400context_exit_releases_resource_and_logs(
+	caplog: pytest.LogCaptureFixture, mock_pyvisa_resource_manager: MagicMock
+):
+	address = "31"
+	expected_gpib_address = f"GPIB0::{address}::INSTR"
+
+	caplog.set_level(logging.INFO)
+
+	with K2400Context(address):
+		pass
+
+	mock_pyvisa_resource_manager.write.assert_called_once_with(":output off")  # type: ignore
+	mock_pyvisa_resource_manager.close.assert_called_once()  # type: ignore
+
+	expected_exit_message = f"Released Keithley at address {expected_gpib_address}."
+
+	assert expected_exit_message in caplog.records[-1].message
 
 
-def test_K2400context_exit_releases_on_exception():
-	pass
+def test_K2400context_exit_releases_resource_if_exception_during_exit(
+	caplog: pytest.LogCaptureFixture, mock_pyvisa_resource_manager: MagicMock
+):
+	address = "42"
 
+	caplog.set_level(logging.ERROR)
 
-def test_K2400context_exit_handles_error_during_shutdown():
-	pass
+	simulated_error_code = -1073807343  # VI_ERROR_RSRC_NFOUND
+	mock_visa_error = visa.VisaIOError(simulated_error_code)
+
+	mock_pyvisa_resource_manager.write.side_effect = mock_visa_error
+
+	with K2400Context(address):
+		pass
+
+	expected_exit_message = "Error turning off Keithley output during exit"
+
+	assert expected_exit_message in caplog.records[0].message
+	mock_pyvisa_resource_manager.close.assert_called_once()  # type: ignore
