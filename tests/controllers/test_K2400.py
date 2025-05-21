@@ -10,12 +10,6 @@ from controllers.K2400 import K2400Context
 
 
 @pytest.fixture
-def mock_sys_exit():
-	with patch("sys.exit") as mock_exit:
-		yield mock_exit
-
-
-@pytest.fixture
 def mock_pyvisa_resource_manager():
 	with patch("pyvisa.ResourceManager") as mockRM:
 		mock_K2400GPIB = MagicMock(spec=GPIBInstrument)
@@ -56,7 +50,7 @@ def test_K2400context_enter_acquires_resource(
 
 
 def test_K2400context_enter_handles_VISAIOerror(
-	caplog: pytest.LogCaptureFixture, mock_pyvisa_resource_manager: MagicMock, mock_sys_exit: MagicMock
+	caplog: pytest.LogCaptureFixture, mock_pyvisa_resource_manager: MagicMock
 ):
 	address = "99"
 	expected_gpib_address = f"GPIB0::{address}::INSTR"
