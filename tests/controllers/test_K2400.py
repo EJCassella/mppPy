@@ -5,6 +5,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 from pyvisa.resources import GPIBInstrument
+from pyvisa import VisaIOError
 
 from controllers.K2400 import K2400Context
 
@@ -63,8 +64,9 @@ def test_K2400context_enter_handles_VISAIOerror(
 
 	caplog.set_level(logging.ERROR)
 
-	with K2400Context(address):
-		pass
+	with pytest.raises(VisaIOError):
+		with K2400Context(address):
+			pass
 
 	assert expected_error_message in caplog.records[0].message
 
