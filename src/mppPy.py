@@ -1,10 +1,12 @@
 import sys
+import time
 
 from utils.logger_config import setup_logger
 from utils.parser import parse_arguments
 from utils.validator import UserSetting
 
 from controllers.K2400 import K2400Context
+from controllers.dummyK2400 import dummyK2400Context
 
 from pydantic import ValidationError
 
@@ -29,8 +31,9 @@ def main() -> None:
 	logger.info("Log initiated.")
 
 	# use args to setup hardware (sourcemeter and shutter[opt])
-	with K2400Context(address=tracker_config.gpib_address) as keithley:
+	with dummyK2400Context(address=tracker_config.gpib_address) as keithley:
 		logger.info("Keithley initiated.")
+		time.sleep(5)
 
 
 """ 

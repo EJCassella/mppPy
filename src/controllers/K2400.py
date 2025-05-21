@@ -25,6 +25,7 @@ class K2400Context(SourcemeterContext):
 		rm = visa.ResourceManager()
 		try:
 			self.resource = rm.open_resource(resource_name=self.address, timeout=60000, _read_termination="\n")
+			logger.info(f"Keithley acquired at address {self.address}.")
 			return self.resource
 		except visa.VisaIOError as e:
 			logger.error(f"Keithley resource could not be acquired at address '{self.address}': {e}.")
@@ -38,7 +39,7 @@ class K2400Context(SourcemeterContext):
 	) -> None:
 		if self.resource:
 			self.resource.close()
-			logger.info("Released Keithley at address {self.address}.")
+			logger.info(f"Released Keithley at address {self.address}.")
 
 
 class K2400Controller(SourcemeterController):
