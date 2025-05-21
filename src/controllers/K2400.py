@@ -1,17 +1,21 @@
 import pyvisa as visa
 import sys
 
-from typing import Optional
+from typing import Optional, cast
 from types import TracebackType
 
 from controllers.interfaces import SourcemeterContext, SourcemeterController, sourcemeterOutput, sweepDirection
 
 from utils.logger_config import setup_logger
 
+from pyvisa.resources import GPIBInstrument
+
 logger = setup_logger()
 
 
 class K2400Context(SourcemeterContext):
+	resource: Optional[GPIBInstrument]
+
 	def __init__(self, address: Optional[str]):
 		if address:
 			self.address = "GPIB0::" + address + "::INSTR"
@@ -21,10 +25,12 @@ class K2400Context(SourcemeterContext):
 			)
 		self.resource = None
 
-	def __enter__(self) -> visa.resources.Resource | None:
+	def __enter__(self) -> GPIBInstrument:
 		rm = visa.ResourceManager()
 		try:
-			self.resource = rm.open_resource(resource_name=self.address, timeout=60000, _read_termination="\n")
+			self.resource = cast(
+				GPIBInstrument, rm.open_resource(resource_name=self.address, timeout=60000, _read_termination="\n")
+			)
 			logger.info(f"Keithley acquired at address {self.address}.")
 			return self.resource
 		except visa.VisaIOError as e:
@@ -38,7 +44,12 @@ class K2400Context(SourcemeterContext):
 		exc_tb: TracebackType | None,
 	) -> None:
 		if self.resource:
-			self.resource.close()
+			try:
+				self.resource.write(":output off")
+			except visa.VisaIOError as e:
+				logger.error(f"Error turning off Keithley output during exit: {e}.")
+			finally:
+				self.resource.close()
 			logger.info(f"Released Keithley at address {self.address}.")
 
 

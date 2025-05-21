@@ -1,6 +1,3 @@
-import pyvisa as visa
-import sys
-
 from typing import Optional
 from types import TracebackType
 
