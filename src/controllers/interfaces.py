@@ -1,8 +1,9 @@
-import pyvisa as visa
-
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import TracebackType
+
+from pyvisa.resources import MessageBasedResource
+from typing import Optional
 
 
 class sourcemeterOutput(Enum):
@@ -23,7 +24,7 @@ class SourcemeterContext(ABC):
 		self.resource = None
 
 	@abstractmethod
-	def __enter__(self) -> visa.resources.Resource | None:
+	def __enter__(self) -> Optional[MessageBasedResource]:
 		pass
 
 	@abstractmethod
@@ -38,8 +39,7 @@ class SourcemeterContext(ABC):
 
 class SourcemeterController(ABC):
 	@abstractmethod
-	def __init__(self, address: str):
-		self.address = address
+	def __init__(self, resource: MessageBasedResource):
 		self.resource = None
 
 	@abstractmethod

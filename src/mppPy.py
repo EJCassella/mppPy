@@ -33,6 +33,8 @@ def main() -> None:
 	with dummyK2400Context(address=tracker_config.gpib_address):
 		logger.info("Keithley initiated.")
 
+	logger.info("Program finished. Exiting.")
+
 
 """ 
 try:

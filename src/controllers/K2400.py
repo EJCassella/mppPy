@@ -1,5 +1,5 @@
 import pyvisa as visa
-import sys
+
 
 from typing import Optional, cast
 from types import TracebackType
@@ -10,22 +10,24 @@ from utils.logger_config import setup_logger
 
 from pyvisa.resources import GPIBInstrument
 
+
 logger = setup_logger()
 
 
 class K2400Context(SourcemeterContext):
 	resource: Optional[GPIBInstrument]
+	address: str
 
-	def __init__(self, address: Optional[str]):
+	def __init__(self, address: str):
 		if address:
-			self.address = "GPIB0::" + address + "::INSTR"
+			self.address = f"GPIB0::{address}::INSTR"
 		else:
 			raise ValueError(
 				"Keithley GPIB connection could not be initiated without a provided GPIB address. Run mppPy.py -h for more information."
 			)
 		self.resource = None
 
-	def __enter__(self) -> GPIBInstrument:
+	def __enter__(self) -> Optional[GPIBInstrument]:
 		rm = visa.ResourceManager()
 		try:
 			self.resource = cast(
@@ -35,7 +37,6 @@ class K2400Context(SourcemeterContext):
 			return self.resource
 		except visa.VisaIOError as e:
 			logger.error(f"Keithley resource could not be acquired at address '{self.address}': {e}.")
-			sys.exit(1)
 
 	def __exit__(
 		self,
