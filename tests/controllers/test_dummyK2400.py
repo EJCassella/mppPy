@@ -32,6 +32,8 @@ def test_dummyK2400context_enter_acquires_resource(caplog: pytest.LogCaptureFixt
 
 
 # Testing __exit__():
+
+
 def test_dummyK2400context_exit_releases_resource(caplog: pytest.LogCaptureFixture) -> None:
 	address = "20"
 	expected_gpib_address = f"GPIB0::{address}::INSTR"
