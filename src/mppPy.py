@@ -1,6 +1,6 @@
 import sys
 
-from utils.logger_config import setup_logger
+from utils.logger_config import setup_logger, LogLevel
 from utils.parser import parse_arguments
 from utils.validator import UserSetting
 
@@ -33,7 +33,7 @@ def main() -> None:
 		print(f"The tracker configuration settings could not be validated: {e}.")
 		sys.exit(1)
 
-	logger = setup_logger()
+	logger = setup_logger(level=LogLevel.INFO)
 	logger.info("Log initiated.")
 
 	# use args to setup hardware (sourcemeter and shutter[opt])
@@ -50,6 +50,8 @@ def main() -> None:
 
 			# TO DO
 			# do some maximum power point tracking....
+			# mpptracker = MPPTracker(sourcemeter = sm, shutter = shutter, cell_area=tracker_config.device_area_cm2, tracking_time=tracker_config.tracking_time_seconds)
+			# mpptracker.run()
 
 	except VisaIOError:
 		logger.error("Keithley communication error has occured. Exiting.")
