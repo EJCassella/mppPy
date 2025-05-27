@@ -9,7 +9,7 @@ from utils.determine_vmpp import determine_mpp
 
 class MaximumPowerPointTracker:
 	def __init__(self, sourcemeter: SourcemeterController, cell_area: float, tracking_time: int, logger=logging.Logger):
-		self._logger = logger
+		self._logger: logging.Logger = logger
 		self._sm: SourcemeterController = sourcemeter
 		self._cell_area: float = cell_area
 		self._tracking_time: int = tracking_time
@@ -17,7 +17,7 @@ class MaximumPowerPointTracker:
 		self._vstep: float = 0.01
 		self._initial_vmpp: float = 0
 		self._vmpp: float = 0
-
+		self._start_time: float = None
 		self._sm.configure_data_output()
 
 	@property
@@ -43,6 +43,8 @@ class MaximumPowerPointTracker:
 	def run(self):
 		self.find_initial_vmpp()
 		self.walk_to_initial_vmpp()
+		_, _, t0 = self.read_output()
+		self._start_time = t0
 
 		previous_power = abs(v * i)
 		direction = 1
@@ -69,4 +71,5 @@ class MaximumPowerPointTracker:
 			pass
 		finally:
 			# set output to 0, should be handled by context manager but just as fail safe
+			self._sm.set_sm_output(output=sourcemeterOutput.VOLTAGE)  # , 0, fixed
 			pass

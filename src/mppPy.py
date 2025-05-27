@@ -10,7 +10,7 @@ from nidaqmx.errors import DaqError  # type: ignore
 # from controllers.K2400 import K2400Context
 # from controllers.shutterUSB6501 import shutterUSB6501
 
-from controllers.dummyK2400 import dummyK2400Context
+from controllers.dummyK2400 import dummyK2400Context, dummyK2400Controller
 from controllers.dummyShutter import dummyShutter
 
 from pydantic import ValidationError
@@ -47,6 +47,11 @@ def main() -> None:
 				logger.info("Shutter initiated.")
 			else:
 				logger.info("Shutter control disabled.")
+
+			sm = dummyK2400Controller()
+			sm.reset()
+			sm.voltage_protection = 5.1
+			sm.configure_data_output()
 
 			# TO DO
 			# do some maximum power point tracking....

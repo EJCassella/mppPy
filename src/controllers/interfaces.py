@@ -3,20 +3,26 @@ from enum import Enum
 from types import TracebackType
 
 from pyvisa.resources import MessageBasedResource
-from typing import Optional
+from typing import Optional, List
 
 from nidaqmx import Task  # type: ignore
 
 
 class sourcemeterOutput(Enum):
-	CURRENT = 1
-	VOLTAGE = 2
+	CURRENT = "current"
+	VOLTAGE = "voltage"
 
 
 class sweepDirection(Enum):
 	FORWARD = 1
 	REVERSE = 2
 	BOTH = 3
+
+
+class sourcemeterMode(Enum):
+	FIXED = "fixed"
+	SWEEP = "sweep"
+	LIST = "list"
 
 
 class SourcemeterContext(ABC):
@@ -42,14 +48,21 @@ class SourcemeterContext(ABC):
 class SourcemeterController(ABC):
 	@abstractmethod
 	def __init__(self, resource: MessageBasedResource):
-		self.resource = None
+		self.resource: MessageBasedResource = resource
+		self._voltage_protection: float
 
 	@abstractmethod
-	def set_current_compliance(self, current_compliance: float):
+	def reset(self):
 		pass
 
+	@property
 	@abstractmethod
-	def set_voltage_protection(self, voltage_protection: float):
+	def voltage_protection(self) -> float:
+		pass
+
+	@voltage_protection.setter
+	@abstractmethod
+	def voltage_protection(self, voltage: float):
 		pass
 
 	@abstractmethod
@@ -57,19 +70,19 @@ class SourcemeterController(ABC):
 		pass
 
 	@abstractmethod
-	def set_sm_output(self, output: sourcemeterOutput):
+	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
 		pass
 
 	@abstractmethod
-	def read_current_voltage_time(self):
+	def read_output(self) -> List[float]:
 		pass
 
 	@abstractmethod
-	def find_open_circuit_voltage(self):
+	def find_open_circuit_voltage(self) -> float:
 		pass
 
 	@abstractmethod
-	def jv_sweep(self, start_voltage: float, end_voltage: float, sweep_direction: sweepDirection):
+	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
 		pass
 
 

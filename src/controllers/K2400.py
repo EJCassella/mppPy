@@ -1,13 +1,20 @@
 import pyvisa as visa
 
-from typing import Optional, cast
+from typing import Optional, cast, List
 from types import TracebackType
 
-from controllers.interfaces import SourcemeterContext, SourcemeterController, sourcemeterOutput, sweepDirection
+from controllers.interfaces import (
+	SourcemeterContext,
+	SourcemeterController,
+	sourcemeterOutput,
+	sweepDirection,
+	sourcemeterMode,
+)
 
 from utils.logger_config import setup_logger
+from utils.custom_exceptions import OutputsExceededError
 
-from pyvisa.resources import GPIBInstrument
+from pyvisa.resources import GPIBInstrument, MessageBasedResource
 
 
 logger = setup_logger()
@@ -55,19 +62,37 @@ class K2400Context(SourcemeterContext):
 
 
 class K2400Controller(SourcemeterController):
-	def set_current_compliance(self, current_compliance: float):
-		pass
+	def __init__(self, resource: MessageBasedResource):
+		self.resource: MessageBasedResource = resource
+		self._voltage_protection: float = 0
+		self.reset()
 
-	def set_voltage_protection(self, voltage_protection: float):
-		pass
+	def reset(self):
+		self.resource.write("*RST")
+		self.resource.write(":trace:clear")
+
+	@property
+	def voltage_protection(self):
+		return self._voltage_protection
+
+	@voltage_protection.setter
+	def voltage_protection(self, voltage: float):
+		if voltage > 5:
+			self._voltage_protection = 5
+			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
+		else:
+			self._voltage_protection = voltage
+			logger.info(f"Setting voltage limit to {voltage} V.")
 
 	def configure_data_output(self):
-		pass
+		self.resource.write(":format:elements voltage,current,time")
 
-	def set_sm_output(self, output: sourcemeterOutput):
-		pass
+	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
+		self.resource.write(f"source:function {output.value}")
+		self.resource.write(f"source:{output.value}:mode {mode}")
+		self.resource.write(f"source:{output.value} {value}")
 
-	def read_current_voltage_time(self):
+	def read_output(self) -> List[float]:
 		pass
 
 	def find_open_circuit_voltage(self):
