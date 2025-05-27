@@ -10,7 +10,6 @@ from controllers.interfaces import (
 )
 
 from utils.logger_config import setup_logger
-from utils.custom_exceptions import OutputsExceededError
 
 logger = setup_logger()
 
@@ -54,6 +53,9 @@ class dummyK2400Controller(SourcemeterController):
 		if voltage > 5:
 			self._voltage_protection = 5
 			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
+		elif voltage <= 0:
+			self._voltage_protection = 5
+			logger.warning("Trying to set voltage protection too low. Setting voltage limit to 5 V.")
 		else:
 			self._voltage_protection = voltage
 			logger.info(f"Setting voltage limit to {voltage} V.")
@@ -62,9 +64,9 @@ class dummyK2400Controller(SourcemeterController):
 		logger.info("Sourcemeter set to output current, voltage, time.")
 
 	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
-		logger.info(f"source:function {output.value}")
-		logger.info(f"source:{output.value}:mode {mode}")
-		logger.info(f"source:{output.value} {value}")
+		logger.info(f":source:function {output.value}")
+		logger.info(f":source:{output.value}:mode {mode.value}")
+		logger.info(f":source:{output.value} {value}")
 		# Implement error handling
 
 	def read_output(self) -> List[float]:

@@ -5,6 +5,7 @@ import logging
 from controllers.interfaces import SourcemeterController, sweepDirection, sourcemeterOutput
 
 from utils.determine_vmpp import determine_mpp
+from utils.custom_exceptions import OutputsExceededError
 
 
 class MaximumPowerPointTracker:
@@ -67,7 +68,7 @@ class MaximumPowerPointTracker:
 				previous_power = power
 		except KeyboardInterrupt:
 			pass
-		except OutputLimitsExceededError:  # if something is running away
+		except OutputsExceededError:  # if something is running away
 			pass
 		finally:
 			# set output to 0, should be handled by context manager but just as fail safe

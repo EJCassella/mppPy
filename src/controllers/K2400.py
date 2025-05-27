@@ -80,6 +80,9 @@ class K2400Controller(SourcemeterController):
 		if voltage > 5:
 			self._voltage_protection = 5
 			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
+		elif voltage <= 0:
+			self._voltage_protection = 5
+			logger.warning("Trying to set voltage protection too low. Setting voltage limit to 5 V.")
 		else:
 			self._voltage_protection = voltage
 			logger.info(f"Setting voltage limit to {voltage} V.")
@@ -88,9 +91,9 @@ class K2400Controller(SourcemeterController):
 		self.resource.write(":format:elements voltage,current,time")
 
 	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
-		self.resource.write(f"source:function {output.value}")
-		self.resource.write(f"source:{output.value}:mode {mode}")
-		self.resource.write(f"source:{output.value} {value}")
+		self.resource.write(f":source:function {output.value}")
+		self.resource.write(f":source:{output.value}:mode {mode.value}")
+		self.resource.write(f":source:{output.value} {value}")
 
 	def read_output(self) -> List[float]:
 		pass
