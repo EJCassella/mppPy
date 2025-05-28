@@ -3,7 +3,7 @@ from enum import Enum
 from types import TracebackType
 
 from pyvisa.resources import MessageBasedResource
-from typing import Optional, List
+from typing import Optional, Sequence, Any
 
 from nidaqmx import Task  # type: ignore
 
@@ -78,7 +78,7 @@ class SourcemeterController(ABC):
 		pass
 
 	@abstractmethod
-	def read_output(self) -> List[float]:
+	def read_output(self) -> Sequence[Any]:
 		pass
 
 	@abstractmethod

@@ -3,6 +3,7 @@ import sys
 from utils.logger_config import setup_logger, LogLevel
 from utils.parser import parse_arguments
 from utils.validator import UserSetting
+from utils.custom_exceptions import OutputLimitsExceededError
 
 from pyvisa import VisaIOError
 from nidaqmx.errors import DaqError  # type: ignore
@@ -13,12 +14,13 @@ from nidaqmx.errors import DaqError  # type: ignore
 from controllers.dummyK2400 import dummyK2400Context, dummyK2400Controller
 from controllers.dummyShutter import dummyShutter
 
+
 from pydantic import ValidationError
 
 from contextlib import ExitStack
 
-DEFAULT_VOLTAGE_PROTECTION = 4.0  # for 3-cells expect 1.2V * 3 max voltage, protection set in Volts
-DEFAULT_CURRENT_COMPLIANCE = 0.06  # for 3-cells expect 24mA/cm^2 * 2.4 cm^2 max current, compliance set in Amps
+VOLTAGE_PROTECTION = 4.0  # for 3-cells expect 1.2V * 3 max voltage, protection set in Volts
+CURRENT_COMPLIANCE = 0.06  # for 3-cells expect 24mA/cm^2 * 2.4 cm^2 max current, compliance set in Amps
 
 
 def main() -> None:
@@ -39,7 +41,6 @@ def main() -> None:
 	logger = setup_logger(level=LogLevel.INFO)
 	logger.info("Log initiated.")
 
-	# use args to setup hardware (sourcemeter and shutter[opt])
 	try:
 		with ExitStack() as stack:
 			resource = stack.enter_context(dummyK2400Context(address=tracker_config.gpib_address))
@@ -49,18 +50,21 @@ def main() -> None:
 			else:
 				logger.info("Shutter control disabled.")
 
-			# TO DO
-			# do some maximum power point tracking....
 			# sm = K2400Controller(
 			# 	resource=resource,
-			# 	voltage_protection=DEFAULT_VOLTAGE_PROTECTION,
-			# 	current_compliance=DEFAULT_CURRENT_COMPLIANCE,
+			# 	voltage_protection=VOLTAGE_PROTECTION,
+			# 	current_compliance=CURRENT_COMPLIANCE,
 			# )
-			dummyK2400Controller(
+
+			sm = dummyK2400Controller(
 				resource=resource,
-				voltage_protection=DEFAULT_VOLTAGE_PROTECTION,
-				current_compliance=DEFAULT_CURRENT_COMPLIANCE,
+				voltage_protection=VOLTAGE_PROTECTION,
+				current_compliance=CURRENT_COMPLIANCE,
 			)
+			sm.find_open_circuit_voltage(5)
+
+			# TO DO
+			# do some maximum power point tracking....
 			# mpptracker = MPPTracker(sourcemeter = sm, shutter = shutter, cell_area=tracker_config.device_area_cm2, tracking_time=tracker_config.tracking_time_seconds)
 			# mpptracker.run()
 
@@ -68,16 +72,16 @@ def main() -> None:
 		logger.error("Keithley communication error has occured. Exiting.")
 	except DaqError:
 		logger.error("Shutter communication error has occured. Exiting.")
+	except OutputLimitsExceededError as e:
+		logger.error(f"Safe output limits exceeded: {e}")
 	except Exception as e:
 		logger.error(f"An unexpected error has occured: {e}")
-	# finally:
-	# shutdown interactive plot
-	# close log file
-	# write to console
+	finally:
+		logger.info("Program finished.")
 
-
-# TO DO
-# plotting and logging data
+		# shutdown interactive plot
+		# close log file
+		# write to console
 
 
 if __name__ == "__main__":

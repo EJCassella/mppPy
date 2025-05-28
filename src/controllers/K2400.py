@@ -1,6 +1,7 @@
 import pyvisa as visa
+import time
 
-from typing import Optional, cast, List
+from typing import Optional, cast, Sequence, Any
 from types import TracebackType
 
 from controllers.interfaces import (
@@ -12,7 +13,9 @@ from controllers.interfaces import (
 )
 
 from utils.logger_config import setup_logger
+from utils.custom_exceptions import OutputLimitsExceededError
 
+from pyvisa import VisaIOError
 from pyvisa.resources import GPIBInstrument, MessageBasedResource
 
 
@@ -61,15 +64,22 @@ class K2400Context(SourcemeterContext):
 
 
 class K2400Controller(SourcemeterController):
-	def __init__(self, resource: Optional[MessageBasedResource], voltage_protection: float, current_compliance: float):
+	def __init__(self, resource: MessageBasedResource, voltage_protection: float, current_compliance: float):
+		self.resource: MessageBasedResource = resource
 		self.max_voltage: float = 6  # max needed for 5-cell
 		self.max_current: float = 0.288  # max needed for 5-cell
 		self._voltage_protection: float
 		self._current_compliance: float
 
+		logger.info("Initialising sourcemeter.")
+
 		self.reset()
+		self.resource.write(':sense:function "current:dc", "voltage:dc"')
 		self.set_voltage_protection(voltage_protection)
 		self.set_current_compliance(current_compliance)
+		self.configure_data_output()
+
+		logger.info("Sourcemeter initialised.")
 
 	def reset(self):
 		self.resource.write("*RST")
@@ -77,6 +87,8 @@ class K2400Controller(SourcemeterController):
 
 	def set_voltage_protection(self, voltage_protection: float):
 		self.voltage_protection = voltage_protection
+		self.resource.write(f":sense:voltage:protection {self.voltage_protection}")
+		self.resource.write(f":sense:voltage:range {self.voltage_protection}")
 
 	@property
 	def voltage_protection(self):
@@ -96,6 +108,8 @@ class K2400Controller(SourcemeterController):
 
 	def set_current_compliance(self, current_compliance: float):
 		self.current_compliance = current_compliance
+		self.resource.write(f":sense:current:protection {self.current_compliance}")
+		self.resource.write(f":sense:current:range {self.current_compliance}")
 
 	@property
 	def current_compliance(self):
@@ -121,15 +135,42 @@ class K2400Controller(SourcemeterController):
 		self.resource.write(":format:elements voltage,current,time")
 
 	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
-		self.resource.write(f":source:function {output.value}")
-		self.resource.write(f":source:{output.value}:mode {mode.value}")
-		self.resource.write(f":source:{output.value} {value}")
+		if str(output.value) == "current":
+			max_value = self.current_compliance
+		else:
+			max_value = self.voltage_protection
 
-	def read_output(self) -> List[float]:
-		return [1.0]  # placeholder
+		try:
+			if not (0 <= value <= max_value):
+				raise OutputLimitsExceededError(
+					f"Attempted to set {output.value} to {value} which exceeds maximum safe value of {max_value}."
+				)
+			else:
+				self.resource.write(f":source:function {output.value}")
+				self.resource.write(f":source:{output.value}:mode {mode.value}")
+				self.resource.write(f":source:{output.value} {value}")
+				self.resource.write(":output on")
 
-	def find_open_circuit_voltage(self) -> float:
-		return 1.0  # placeholder
+		except OutputLimitsExceededError as e:
+			raise e
+		except VisaIOError as e:
+			raise e
+
+	def read_output(self) -> Sequence[Any]:
+		i, v, t = self.resource.query_ascii_values(message="READ?")  # type: ignore
+		return [i, v, t]
+
+	def find_open_circuit_voltage(self, hold_time: int = 5) -> float:
+		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
+		logger.info(
+			f"Holding device at 0 applied current for {hold_time} seconds before measuring open circuit voltage."
+		)
+		time.sleep(hold_time)
+		logger.info("Measuring open circuit voltage...")
+		_, Voc, _ = self.read_output()
+		logger.info(f"Device Voc measured as {Voc} V.")
+		self.resource.write(":output off")
+		return Voc
 
 	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
 		pass

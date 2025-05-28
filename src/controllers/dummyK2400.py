@@ -1,4 +1,6 @@
-from typing import Optional, List
+import time
+
+from typing import Optional, Sequence, Any
 from types import TracebackType
 
 from controllers.interfaces import (
@@ -10,6 +12,7 @@ from controllers.interfaces import (
 )
 
 from utils.logger_config import setup_logger
+from utils.custom_exceptions import OutputLimitsExceededError
 
 logger = setup_logger()
 
@@ -44,10 +47,12 @@ class dummyK2400Controller(SourcemeterController):
 		self._current_compliance: float
 
 		logger.info("Initialising dummy sourcemeter.")
+
 		self.reset()
 		self.set_voltage_protection(voltage_protection)
 		self.set_current_compliance(current_compliance)
 		self.configure_data_output()
+
 		logger.info("dummySourcemeter initialised.")
 
 	def reset(self):
@@ -99,21 +104,41 @@ class dummyK2400Controller(SourcemeterController):
 		logger.info("Sourcemeter set to output current, voltage, time.")
 
 	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
-		logger.info(f":source:function {output.value}")
-		logger.info(f":source:{output.value}:mode {mode.value}")
-		logger.info(f":source:{output.value} {value}")
-		# Implement error handling
+		if str(output.value) == "current":
+			max_value = self.current_compliance
+		else:
+			max_value = self.voltage_protection
 
-	def read_output(self) -> List[float]:
+		try:
+			if not (0 <= value <= max_value):
+				raise OutputLimitsExceededError(
+					f"Attempted to set {output.value} to {value} which exceeds maximum safe value of {max_value}."
+				)
+			else:
+				logger.info(f":source:function {output.value}")
+				logger.info(f":source:{output.value}:mode {mode.value}")
+				logger.info(f":source:{output.value} {value}")
+				logger.info(":output on")
+
+		except OutputLimitsExceededError as e:
+			raise e
+
+	def read_output(self) -> Sequence[Any]:
 		logger.info("Beep boop, reading current, voltage, time.")
 		return [0.004, 0.96, 1.0]
 
 	# TO DO: implement dummy setters to change output values
 
-	def find_open_circuit_voltage(self):
+	def find_open_circuit_voltage(self, hold_time: int = 5):
 		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
+		logger.info(
+			f"Holding device at 0 applied current for {hold_time} seconds before measuring open circuit voltage."
+		)
+		time.sleep(hold_time)
+		logger.info("Measuring open circuit voltage...")
 		_, Voc, _ = self.read_output()
-		logger.info(f"Beep boop, open circuit voltage found to be {Voc}.")
+		logger.info(f"Device Voc measured as {Voc} V.")
+		logger.info(":output off")
 		return Voc
 
 	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
