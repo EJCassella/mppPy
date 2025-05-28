@@ -2,7 +2,7 @@
 
 import logging
 
-from controllers.interfaces import SourcemeterController, sweepDirection, sourcemeterOutput
+from controllers.interfaces import SourcemeterController, sweepDirection, sourcemeterOutput, sourcemeterMode
 
 from utils.determine_vmpp import determine_mpp
 from utils.custom_exceptions import OutputsExceededError

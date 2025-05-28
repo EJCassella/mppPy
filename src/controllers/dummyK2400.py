@@ -13,6 +13,8 @@ from utils.logger_config import setup_logger
 
 logger = setup_logger()
 
+DEFAULT_VOLTAGE_PROTECTION = 5.0
+
 
 class dummyK2400Context(SourcemeterContext):
 	def __init__(self, address: Optional[str]):
@@ -38,8 +40,11 @@ class dummyK2400Context(SourcemeterContext):
 
 class dummyK2400Controller(SourcemeterController):
 	def __init__(self):
-		self._voltage_protection: float
-		logger.info("Initialised dummy sourcemeter.")
+		self._voltage_protection: float = DEFAULT_VOLTAGE_PROTECTION
+		logger.info("Initialising dummy sourcemeter.")
+		self.reset()
+		self.configure_data_output()
+		logger.info("dummySourcemeter initialised.")
 
 	def reset(self):
 		logger.info("Resetting...")
@@ -50,11 +55,11 @@ class dummyK2400Controller(SourcemeterController):
 
 	@voltage_protection.setter
 	def voltage_protection(self, voltage: float):
-		if voltage > 5:
-			self._voltage_protection = 5
+		if voltage > DEFAULT_VOLTAGE_PROTECTION:
+			self._voltage_protection = DEFAULT_VOLTAGE_PROTECTION
 			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
 		elif voltage <= 0:
-			self._voltage_protection = 5
+			self._voltage_protection = DEFAULT_VOLTAGE_PROTECTION
 			logger.warning("Trying to set voltage protection too low. Setting voltage limit to 5 V.")
 		else:
 			self._voltage_protection = voltage
@@ -76,9 +81,10 @@ class dummyK2400Controller(SourcemeterController):
 	# TO DO: implement dummy setters to change output values
 
 	def find_open_circuit_voltage(self):
-		Voc = 1.8
+		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
+		_, Voc, _ = self.read_output()
 		logger.info(f"Beep boop, open circuit voltage found to be {Voc}.")
-		return 1.8
+		return Voc
 
 	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
 		if sweep_direction == sweepDirection.FORWARD:
@@ -86,6 +92,6 @@ class dummyK2400Controller(SourcemeterController):
 		elif sweep_direction == sweepDirection.REVERSE:
 			logger.info(f"Sweeping voltage value from {max_voltage} to 0V.")
 		elif sweep_direction == sweepDirection.BOTH:
-			logger.info(f"Sweeping voltage value from 0V to {max_voltage}.")
-			logger.info(f"Sweeping voltage value from {max_voltage} to 0V.")
+			logger.info(f"Sweeping voltage value from 0V to {max_voltage}V.")
+			logger.info(f"Sweeping voltage value from {max_voltage}V to 0V.")
 		# TO DO: return proxy JV array for MPP calculation

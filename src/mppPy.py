@@ -12,11 +12,6 @@ from nidaqmx.errors import DaqError  # type: ignore
 
 from controllers.dummyK2400 import dummyK2400Context, dummyK2400Controller
 from controllers.dummyShutter import dummyShutter
-from controllers.interfaces import (
-	sourcemeterOutput,
-	sourcemeterMode,
-	sweepDirection,
-)
 
 from pydantic import ValidationError
 
@@ -45,19 +40,12 @@ def main() -> None:
 	try:
 		with ExitStack() as stack:
 			stack.enter_context(dummyK2400Context(address=tracker_config.gpib_address))
-			logger.info("Keithley initiated.")
 
 			if tracker_config.shutter:
 				stack.enter_context(dummyShutter(enabled=tracker_config.shutter))
-				logger.info("Shutter initiated.")
 			else:
 				logger.info("Shutter control disabled.")
 
-			sm = dummyK2400Controller()
-			sm.reset()
-			sm.voltage_protection = 4.1
-			sm.configure_data_output()
-			sm.set_sm_output(output=sourcemeterOutput.VOLTAGE, value=1.0, mode=sourcemeterMode.SWEEP)
 			# TO DO
 			# do some maximum power point tracking....
 			# mpptracker = MPPTracker(sourcemeter = sm, shutter = shutter, cell_area=tracker_config.device_area_cm2, tracking_time=tracker_config.tracking_time_seconds)
@@ -69,6 +57,10 @@ def main() -> None:
 		logger.error("Shutter communication error has occured. Exiting.")
 	except Exception as e:
 		logger.error(f"An unexpected error has occured: {e}")
+	# finally:
+	# shutdown interactive plot
+	# close log file
+	# write to console
 
 
 # TO DO
