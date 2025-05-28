@@ -12,7 +12,6 @@ from controllers.interfaces import (
 )
 
 from utils.logger_config import setup_logger
-from utils.custom_exceptions import OutputsExceededError
 
 from pyvisa.resources import GPIBInstrument, MessageBasedResource
 
@@ -33,7 +32,7 @@ class K2400Context(SourcemeterContext):
 			)
 		self.resource = None
 
-	def __enter__(self) -> Optional[GPIBInstrument]:
+	def __enter__(self) -> GPIBInstrument:
 		rm = visa.ResourceManager()
 		try:
 			self.resource = cast(
@@ -62,14 +61,22 @@ class K2400Context(SourcemeterContext):
 
 
 class K2400Controller(SourcemeterController):
-	def __init__(self, resource: MessageBasedResource):
-		self.resource: MessageBasedResource = resource
-		self._voltage_protection: float = 0
+	def __init__(self, resource: Optional[MessageBasedResource], voltage_protection: float, current_compliance: float):
+		self.max_voltage: float = 6  # max needed for 5-cell
+		self.max_current: float = 0.288  # max needed for 5-cell
+		self._voltage_protection: float
+		self._current_compliance: float
+
 		self.reset()
+		self.set_voltage_protection(voltage_protection)
+		self.set_current_compliance(current_compliance)
 
 	def reset(self):
 		self.resource.write("*RST")
 		self.resource.write(":trace:clear")
+
+	def set_voltage_protection(self, voltage_protection: float):
+		self.voltage_protection = voltage_protection
 
 	@property
 	def voltage_protection(self):
@@ -77,15 +84,38 @@ class K2400Controller(SourcemeterController):
 
 	@voltage_protection.setter
 	def voltage_protection(self, voltage: float):
-		if voltage > 5:
-			self._voltage_protection = 5
-			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
+		if voltage > self.max_voltage:
+			self._voltage_protection = self.max_voltage
+			logger.warning(f"Trying to set voltage protection too high. Limiting voltage to {self.max_voltage} V.")
 		elif voltage <= 0:
-			self._voltage_protection = 5
-			logger.warning("Trying to set voltage protection too low. Setting voltage limit to 5 V.")
+			self._voltage_protection = self.max_voltage
+			logger.warning(f"Trying to set voltage protection too low. Setting voltage limit to {self.max_voltage} V.")
 		else:
 			self._voltage_protection = voltage
 			logger.info(f"Setting voltage limit to {voltage} V.")
+
+	def set_current_compliance(self, current_compliance: float):
+		self.current_compliance = current_compliance
+
+	@property
+	def current_compliance(self):
+		return self._current_compliance
+
+	@current_compliance.setter
+	def current_compliance(self, current: float):
+		if current > self.max_current:
+			self._current_compliance = self.max_current
+			logger.warning(
+				f"Trying to set current protection too high. Limiting current compliance to {self.max_current} A."
+			)
+		elif current <= 0:
+			self._current_compliance = self.max_current
+			logger.warning(
+				f"Trying to set current protection too low. Setting current compliance to {self.max_current} V."
+			)
+		else:
+			self._current_compliance = current
+			logger.info(f"Setting current compliance to {current} V.")
 
 	def configure_data_output(self):
 		self.resource.write(":format:elements voltage,current,time")
@@ -96,10 +126,10 @@ class K2400Controller(SourcemeterController):
 		self.resource.write(f":source:{output.value} {value}")
 
 	def read_output(self) -> List[float]:
-		pass
+		return [1.0]  # placeholder
 
-	def find_open_circuit_voltage(self):
-		pass
+	def find_open_circuit_voltage(self) -> float:
+		return 1.0  # placeholder
 
-	def jv_sweep(self, start_voltage: float, end_voltage: float, sweep_direction: sweepDirection):
+	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
 		pass

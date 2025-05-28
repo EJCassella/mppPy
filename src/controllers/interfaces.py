@@ -47,9 +47,13 @@ class SourcemeterContext(ABC):
 
 class SourcemeterController(ABC):
 	@abstractmethod
-	def __init__(self, resource: MessageBasedResource):
+	def __init__(self, resource: MessageBasedResource, voltage_protection: float, current_compliance: float):
 		self.resource: MessageBasedResource = resource
 		self._voltage_protection: float
+		self._current_compliance: float
+
+		self.max_voltage: float  # Absolute upper limit required in Volts
+		self.max_current: float  # Absolute upper limit required in Amps
 
 	@abstractmethod
 	def reset(self):

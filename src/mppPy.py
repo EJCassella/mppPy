@@ -7,7 +7,7 @@ from utils.validator import UserSetting
 from pyvisa import VisaIOError
 from nidaqmx.errors import DaqError  # type: ignore
 
-# from controllers.K2400 import K2400Context
+# from controllers.K2400 import K2400Context, K2400Controller
 # from controllers.shutterUSB6501 import shutterUSB6501
 
 from controllers.dummyK2400 import dummyK2400Context, dummyK2400Controller
@@ -16,6 +16,9 @@ from controllers.dummyShutter import dummyShutter
 from pydantic import ValidationError
 
 from contextlib import ExitStack
+
+DEFAULT_VOLTAGE_PROTECTION = 4.0  # for 3-cells expect 1.2V * 3 max voltage, protection set in Volts
+DEFAULT_CURRENT_COMPLIANCE = 0.06  # for 3-cells expect 24mA/cm^2 * 2.4 cm^2 max current, compliance set in Amps
 
 
 def main() -> None:
@@ -39,7 +42,7 @@ def main() -> None:
 	# use args to setup hardware (sourcemeter and shutter[opt])
 	try:
 		with ExitStack() as stack:
-			stack.enter_context(dummyK2400Context(address=tracker_config.gpib_address))
+			resource = stack.enter_context(dummyK2400Context(address=tracker_config.gpib_address))
 
 			if tracker_config.shutter:
 				stack.enter_context(dummyShutter(enabled=tracker_config.shutter))
@@ -48,6 +51,16 @@ def main() -> None:
 
 			# TO DO
 			# do some maximum power point tracking....
+			# sm = K2400Controller(
+			# 	resource=resource,
+			# 	voltage_protection=DEFAULT_VOLTAGE_PROTECTION,
+			# 	current_compliance=DEFAULT_CURRENT_COMPLIANCE,
+			# )
+			dummyK2400Controller(
+				resource=resource,
+				voltage_protection=DEFAULT_VOLTAGE_PROTECTION,
+				current_compliance=DEFAULT_CURRENT_COMPLIANCE,
+			)
 			# mpptracker = MPPTracker(sourcemeter = sm, shutter = shutter, cell_area=tracker_config.device_area_cm2, tracking_time=tracker_config.tracking_time_seconds)
 			# mpptracker.run()
 

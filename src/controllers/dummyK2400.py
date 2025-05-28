@@ -13,8 +13,6 @@ from utils.logger_config import setup_logger
 
 logger = setup_logger()
 
-DEFAULT_VOLTAGE_PROTECTION = 5.0
-
 
 class dummyK2400Context(SourcemeterContext):
 	def __init__(self, address: Optional[str]):
@@ -39,15 +37,24 @@ class dummyK2400Context(SourcemeterContext):
 
 
 class dummyK2400Controller(SourcemeterController):
-	def __init__(self):
-		self._voltage_protection: float = DEFAULT_VOLTAGE_PROTECTION
+	def __init__(self, resource: None, voltage_protection: float, current_compliance: float):
+		self.max_voltage: float = 6  # max needed for 5-cell
+		self.max_current: float = 0.288  # max needed for 5-cell
+		self._voltage_protection: float
+		self._current_compliance: float
+
 		logger.info("Initialising dummy sourcemeter.")
 		self.reset()
+		self.set_voltage_protection(voltage_protection)
+		self.set_current_compliance(current_compliance)
 		self.configure_data_output()
 		logger.info("dummySourcemeter initialised.")
 
 	def reset(self):
 		logger.info("Resetting...")
+
+	def set_voltage_protection(self, voltage_protection: float):
+		self.voltage_protection = voltage_protection
 
 	@property
 	def voltage_protection(self) -> float:
@@ -55,15 +62,38 @@ class dummyK2400Controller(SourcemeterController):
 
 	@voltage_protection.setter
 	def voltage_protection(self, voltage: float):
-		if voltage > DEFAULT_VOLTAGE_PROTECTION:
-			self._voltage_protection = DEFAULT_VOLTAGE_PROTECTION
-			logger.warning("Trying to set voltage protection too high. Limiting voltage to 5 V.")
+		if voltage > self.max_voltage:
+			self._voltage_protection = self.max_voltage
+			logger.warning(f"Trying to set voltage protection too high. Limiting voltage to {self.max_voltage} V.")
 		elif voltage <= 0:
-			self._voltage_protection = DEFAULT_VOLTAGE_PROTECTION
-			logger.warning("Trying to set voltage protection too low. Setting voltage limit to 5 V.")
+			self._voltage_protection = self.max_voltage
+			logger.warning(f"Trying to set voltage protection too low. Setting voltage limit to {self.max_voltage} V.")
 		else:
 			self._voltage_protection = voltage
 			logger.info(f"Setting voltage limit to {voltage} V.")
+
+	def set_current_compliance(self, current_compliance: float):
+		self.current_compliance = current_compliance
+
+	@property
+	def current_compliance(self):
+		return self._current_compliance
+
+	@current_compliance.setter
+	def current_compliance(self, current: float):
+		if current > self.max_current:
+			self._current_compliance = self.max_current
+			logger.warning(
+				f"Trying to set current protection too high. Limiting current compliance to {self.max_current} A."
+			)
+		elif current <= 0:
+			self._current_compliance = self.max_current
+			logger.warning(
+				f"Trying to set current protection too low. Setting current compliance to {self.max_current} V."
+			)
+		else:
+			self._current_compliance = current
+			logger.info(f"Setting current compliance to {current} V.")
 
 	def configure_data_output(self):
 		logger.info("Sourcemeter set to output current, voltage, time.")

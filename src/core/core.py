@@ -10,10 +10,10 @@ from utils.custom_exceptions import OutputsExceededError
 
 class MaximumPowerPointTracker:
 	def __init__(self, sourcemeter: SourcemeterController, cell_area: float, tracking_time: int, logger=logging.Logger):
-		self._logger: logging.Logger = logger
-		self._sm: SourcemeterController = sourcemeter
-		self._cell_area: float = cell_area
-		self._tracking_time: int = tracking_time
+		self.logger: logging.Logger = logger
+		self.sm: SourcemeterController = sourcemeter
+		self.cell_area: float = cell_area
+		self.tracking_time: int = tracking_time
 		self._npoints: int = 1000
 		self._vstep: float = 0.01
 		self._initial_vmpp: float = 0
