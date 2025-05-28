@@ -1,11 +1,9 @@
 import pytest
 import logging
-import nidaqmx  # type: ignore
 
 from unittest.mock import MagicMock, patch
 
 from nidaqmx import Task  # type: ignore
-from nidaqmx.errors import DaqError  # type: ignore
 
 
 from controllers.shutterUSB6501 import shutterUSB6501
