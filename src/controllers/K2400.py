@@ -1,5 +1,4 @@
 import pyvisa as visa
-import time
 
 from typing import Optional, cast, Sequence, Any
 from types import TracebackType
@@ -14,6 +13,7 @@ from controllers.interfaces import (
 
 from utils.logger_config import setup_logger
 from utils.custom_exceptions import OutputLimitsExceededError
+from utils.constants import SWEEP_RATE
 
 from pyvisa import VisaIOError
 from pyvisa.resources import GPIBInstrument, MessageBasedResource
@@ -140,6 +140,7 @@ class K2400Controller(SourcemeterController):
 		value: float,
 		mode: sourcemeterMode,
 		sweepdir: sweepDirection = sweepDirection.FORWARD,
+		sweep_rate: float = SWEEP_RATE,
 	):
 		if str(output.value) == "current":
 			max_value = self.current_compliance
@@ -158,10 +159,10 @@ class K2400Controller(SourcemeterController):
 				self.resource.write(":source:sweep:spacing linear")
 				self.resource.write(":source:delay 0.05")  # Settling time in seconds
 
-				# !------------------------ should be modifiable based on value -------------!
-				self.resource.write(":trigger:count 1000")
-				self.resource.write(":source:sweep:points 1000")
-				# !------------------------ should be modifiable based on value -------------!
+				nPoints = value / (0.05 * sweep_rate)  # voltage (V) / (delay (S) * sweep_rate (V/s))
+
+				self.resource.write(f":trigger:count {nPoints}")
+				self.resource.write(f":source:sweep:points {nPoints}")
 
 				if sweepdir == sweepDirection.FORWARD:
 					self.resource.write(f":source:{output.value}:start 0.0")
@@ -186,47 +187,3 @@ class K2400Controller(SourcemeterController):
 	def read_output(self) -> Sequence[Any]:
 		i, v, t = self.resource.query_ascii_values(message="READ?")  # type: ignore
 		return [i, v, t]
-
-	# !----------------------- CAN BE MOVED TO MPPT CORE LOGIC ---------------------------!
-
-	def find_open_circuit_voltage(self, hold_time: int = 5) -> float:
-		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
-		logger.info(
-			f"Holding device at 0 applied current for {hold_time} seconds before measuring open circuit voltage."
-		)
-		time.sleep(hold_time)
-		logger.info("Measuring open circuit voltage...")
-		_, Voc, _ = self.read_output()
-		logger.info(f"Device Voc measured as {Voc} V.")
-		self.resource.write(":output off")
-		return Voc
-
-	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
-		if sweep_direction != sweepDirection.BOTH:
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweep_direction,
-			)
-			i, v, _ = self.read_output()
-			return [i, v]
-
-		else:
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.FORWARD,
-			)
-			iFwd, vFwd, _ = self.read_output()
-
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.REVERSE,
-			)
-			iBcwd, vBcwd, _ = self.read_output()
-
-			return [iFwd, iBcwd, vFwd, vBcwd]

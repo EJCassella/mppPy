@@ -32,7 +32,7 @@ class SourcemeterContext(ABC):
 		self.resource = None
 
 	@abstractmethod
-	def __enter__(self) -> Optional[MessageBasedResource]:
+	def __enter__(self) -> MessageBasedResource:
 		pass
 
 	@abstractmethod
@@ -74,19 +74,18 @@ class SourcemeterController(ABC):
 		pass
 
 	@abstractmethod
-	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode, sweepdir: sweepDirection):
+	def set_sm_output(
+		self,
+		output: sourcemeterOutput,
+		value: float,
+		mode: sourcemeterMode,
+		sweepdir: sweepDirection,
+		sweep_rate: float,
+	):
 		pass
 
 	@abstractmethod
 	def read_output(self) -> Sequence[Any]:
-		pass
-
-	@abstractmethod
-	def find_open_circuit_voltage(self) -> float:
-		pass
-
-	@abstractmethod
-	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
 		pass
 
 

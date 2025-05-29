@@ -1,6 +1,4 @@
-import time
-
-from typing import Optional, Sequence, Any
+from typing import Optional, Sequence, Any, cast
 from types import TracebackType
 
 from controllers.interfaces import (
@@ -13,6 +11,9 @@ from controllers.interfaces import (
 
 from utils.logger_config import setup_logger
 from utils.custom_exceptions import OutputLimitsExceededError
+from utils.constants import SWEEP_RATE
+
+from pyvisa.resources import GPIBInstrument
 
 logger = setup_logger()
 
@@ -27,8 +28,11 @@ class dummyK2400Context(SourcemeterContext):
 			)
 		self.resource = None
 
-	def __enter__(self) -> None:
+	def __enter__(self) -> GPIBInstrument:
 		logger.info(f"Keithley acquired at address {self.address}.")
+		self.resource = self.address
+		self.resource = cast(GPIBInstrument, self.resource)
+		return self.resource
 
 	def __exit__(
 		self,
@@ -40,7 +44,7 @@ class dummyK2400Context(SourcemeterContext):
 
 
 class dummyK2400Controller(SourcemeterController):
-	def __init__(self, resource: None, voltage_protection: float, current_compliance: float):
+	def __init__(self, resource: GPIBInstrument, voltage_protection: float, current_compliance: float):
 		self.max_voltage: float = 6  # max needed for 5-cell
 		self.max_current: float = 0.288  # max needed for 5-cell
 		self._voltage_protection: float
@@ -109,6 +113,7 @@ class dummyK2400Controller(SourcemeterController):
 		value: float,
 		mode: sourcemeterMode,
 		sweepdir: sweepDirection = sweepDirection.FORWARD,
+		sweep_rate: float = SWEEP_RATE,
 	):
 		if str(output.value) == "current":
 			max_value = self.current_compliance
@@ -127,10 +132,10 @@ class dummyK2400Controller(SourcemeterController):
 				logger.debug(":source:sweep:spacing linear")
 				logger.debug(":source:delay 0.05")  # Settling time in seconds
 
-				# !------------------------ should be modifiable based on value -------------!
-				logger.debug(":trigger:count 1000")
-				logger.debug(":source:sweep:points 1000")
-				# !------------------------ should be modifiable based on value -------------!
+				nPoints = value / (0.05 * sweep_rate)  # voltage (V) / (delay (S) * sweep_rate (V/s))
+
+				logger.debug(f":trigger:count {nPoints}")
+				logger.debug(f":source:sweep:points {nPoints}")
 
 				if sweepdir == sweepDirection.FORWARD:
 					logger.debug(f":source:{output.value}:start 0.0")
@@ -156,46 +161,3 @@ class dummyK2400Controller(SourcemeterController):
 		return [0.004, 0.96, 1.0]
 
 	# TO DO: implement dummy setters to change output values
-
-	def find_open_circuit_voltage(self, hold_time: int = 5):
-		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
-		logger.info(
-			f"Holding device at 0 applied current for {hold_time} seconds before measuring open circuit voltage."
-		)
-		time.sleep(hold_time)
-		logger.info("Measuring open circuit voltage...")
-		_, Voc, _ = self.read_output()
-		logger.info(f"Device Voc measured as {Voc} V.")
-		logger.info(":output off")
-		return Voc
-
-	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
-		if sweep_direction != sweepDirection.BOTH:
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweep_direction,
-			)
-			i, v, _ = self.read_output()
-			return [i, v]
-
-		else:
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.FORWARD,
-			)
-			iFwd, vFwd, _ = self.read_output()
-
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.REVERSE,
-			)
-			iBcwd, vBcwd, _ = self.read_output()
-
-			return [iFwd, iBcwd, vFwd, vBcwd]
-		# TO DO: return proxy JV array for MPP calculation
