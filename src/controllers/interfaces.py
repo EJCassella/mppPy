@@ -14,9 +14,9 @@ class sourcemeterOutput(Enum):
 
 
 class sweepDirection(Enum):
-	FORWARD = 1
-	REVERSE = 2
-	BOTH = 3
+	FORWARD = "forward"
+	REVERSE = "reverse"
+	BOTH = "both"
 
 
 class sourcemeterMode(Enum):
@@ -74,7 +74,7 @@ class SourcemeterController(ABC):
 		pass
 
 	@abstractmethod
-	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
+	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode, sweepdir: sweepDirection):
 		pass
 
 	@abstractmethod
@@ -86,7 +86,7 @@ class SourcemeterController(ABC):
 		pass
 
 	@abstractmethod
-	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
+	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
 		pass
 
 

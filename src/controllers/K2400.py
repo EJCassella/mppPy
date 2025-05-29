@@ -66,7 +66,7 @@ class K2400Context(SourcemeterContext):
 class K2400Controller(SourcemeterController):
 	def __init__(self, resource: MessageBasedResource, voltage_protection: float, current_compliance: float):
 		self.resource: MessageBasedResource = resource
-		self.max_voltage: float = 6  # max needed for 5-cell
+		self.max_voltage: float = 6.5  # max needed for 5-cell
 		self.max_current: float = 0.288  # max needed for 5-cell
 		self._voltage_protection: float
 		self._current_compliance: float
@@ -134,7 +134,13 @@ class K2400Controller(SourcemeterController):
 	def configure_data_output(self):
 		self.resource.write(":format:elements voltage,current,time")
 
-	def set_sm_output(self, output: sourcemeterOutput, value: float, mode: sourcemeterMode):
+	def set_sm_output(
+		self,
+		output: sourcemeterOutput,
+		value: float,
+		mode: sourcemeterMode,
+		sweepdir: sweepDirection = sweepDirection.FORWARD,
+	):
 		if str(output.value) == "current":
 			max_value = self.current_compliance
 		else:
@@ -145,6 +151,26 @@ class K2400Controller(SourcemeterController):
 				raise OutputLimitsExceededError(
 					f"Attempted to set {output.value} to {value} which exceeds maximum safe value of {max_value}."
 				)
+
+			elif str(mode.value) == "sweep":
+				self.resource.write(f":source:function {output.value}")
+				self.resource.write(f":source:{output.value}:mode {mode.value}")
+				self.resource.write(":source:sweep:spacing linear")
+				self.resource.write(":source:delay 0.05")  # Settling time in seconds
+
+				# !------------------------ should be modifiable based on value -------------!
+				self.resource.write(":trigger:count 1000")
+				self.resource.write(":source:sweep:points 1000")
+				# !------------------------ should be modifiable based on value -------------!
+
+				if str(sweepdir.value) == "foward":
+					self.resource.write(f":source:{output.value}:start 0.0")
+					self.resource.write(f":source:{output.value}:stop {value}")
+
+				elif str(sweepdir.value) == "reverse":
+					self.resource.write(f":source:{output.value}:start {value}")
+					self.resource.write(f":source:{output.value}:stop 0.0")
+
 			else:
 				self.resource.write(f":source:function {output.value}")
 				self.resource.write(f":source:{output.value}:mode {mode.value}")
@@ -160,6 +186,8 @@ class K2400Controller(SourcemeterController):
 		i, v, t = self.resource.query_ascii_values(message="READ?")  # type: ignore
 		return [i, v, t]
 
+	# !----------------------- CAN BE MOVED TO MPPT CORE LOGIC ---------------------------!
+
 	def find_open_circuit_voltage(self, hold_time: int = 5) -> float:
 		self.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
 		logger.info(
@@ -172,5 +200,46 @@ class K2400Controller(SourcemeterController):
 		self.resource.write(":output off")
 		return Voc
 
-	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection):
-		pass
+	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
+		if sweep_direction == sweepDirection.FORWARD:
+			logger.info(f"Sweeping voltage value from 0V to {max_voltage}.")
+			self.set_sm_output(
+				output=sourcemeterOutput.VOLTAGE,
+				value=max_voltage,
+				mode=sourcemeterMode.SWEEP,
+				sweepdir=sweepDirection.FORWARD,
+			)
+			i, v, _ = self.read_output()
+			return [i, v]
+
+		elif sweep_direction == sweepDirection.REVERSE:
+			self.set_sm_output(
+				output=sourcemeterOutput.VOLTAGE,
+				value=max_voltage,
+				mode=sourcemeterMode.SWEEP,
+				sweepdir=sweepDirection.REVERSE,
+			)
+			logger.info(f"Sweeping voltage value from {max_voltage}V to 0V.")
+			i, v, _ = self.read_output()
+			return [i, v]
+
+		else:
+			logger.info(f"Sweeping voltage value from 0V to {max_voltage}V.")
+			self.set_sm_output(
+				output=sourcemeterOutput.VOLTAGE,
+				value=max_voltage,
+				mode=sourcemeterMode.SWEEP,
+				sweepdir=sweepDirection.FORWARD,
+			)
+			iFwd, vFwd, _ = self.read_output()
+
+			self.set_sm_output(
+				output=sourcemeterOutput.VOLTAGE,
+				value=max_voltage,
+				mode=sourcemeterMode.SWEEP,
+				sweepdir=sweepDirection.REVERSE,
+			)
+			logger.info(f"Sweeping voltage value from {max_voltage}V to 0V.")
+			iBcwd, vBcwd, _ = self.read_output()
+
+			return [iFwd, iBcwd, vFwd, vBcwd]

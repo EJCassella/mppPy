@@ -15,12 +15,17 @@ from controllers.dummyK2400 import dummyK2400Context, dummyK2400Controller
 from controllers.dummyShutter import dummyShutter
 
 
+from controllers.interfaces import (
+	sweepDirection,
+)
+
 from pydantic import ValidationError
 
 from contextlib import ExitStack
 
-VOLTAGE_PROTECTION = 4.0  # for 3-cells expect 1.2V * 3 max voltage, protection set in Volts
-CURRENT_COMPLIANCE = 0.06  # for 3-cells expect 24mA/cm^2 * 2.4 cm^2 max current, compliance set in Amps
+""" For 3-cells expect 1.2V * 3 max voltage, protection set in Volts and 24 mA/cm^2 * 2.4cm^2, set in Amps. Absolute hard limits (enough for 5-cell design) set to 6.5 V and 0.288 A in K2400 class. Only change the hard limit if absolutely necessary, i.e. active areas greater than 11.5 cm^2 or more than 5 cells. Keep the protection and compliance as low as necessary for you application for safety during measurements."""
+VOLTAGE_PROTECTION = 3.6
+CURRENT_COMPLIANCE = 0.058
 
 
 def main() -> None:
@@ -61,7 +66,7 @@ def main() -> None:
 				voltage_protection=VOLTAGE_PROTECTION,
 				current_compliance=CURRENT_COMPLIANCE,
 			)
-			sm.find_open_circuit_voltage(5)
+			sm.jv_sweep(max_voltage=1.2, sweep_direction=sweepDirection.BOTH)
 
 			# TO DO
 			# do some maximum power point tracking....
