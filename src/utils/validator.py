@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -10,6 +11,8 @@ class UserSetting(BaseModel):
 	device_area_cm2: float = Field(gt=0)
 	gpib_address: str
 	shutter: bool
+	dummy: bool
+	metadata: Optional[str]
 
 	@field_validator("gpib_address", mode="after")
 	@classmethod

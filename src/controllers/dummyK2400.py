@@ -132,13 +132,15 @@ class dummyK2400Controller(SourcemeterController):
 				logger.debug(":source:sweep:points 1000")
 				# !------------------------ should be modifiable based on value -------------!
 
-				if str(sweepdir.value) == "foward":
+				if sweepdir == sweepDirection.FORWARD:
 					logger.debug(f":source:{output.value}:start 0.0")
 					logger.debug(f":source:{output.value}:stop {value}")
+					logger.info(f"Sweeping {output.value} value from 0 to {value}.")
 
-				elif str(sweepdir.value) == "reverse":
+				elif sweepdir == sweepDirection.REVERSE:
 					logger.debug(f":source:{output.value}:start {value}")
 					logger.debug(f":source:{output.value}:stop 0.0")
+					logger.info(f"Sweeping {output.value} value from {value} to 0.")
 
 			else:
 				logger.debug(f":source:function {output.value}")
@@ -168,30 +170,17 @@ class dummyK2400Controller(SourcemeterController):
 		return Voc
 
 	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
-		if sweep_direction == sweepDirection.FORWARD:
-			logger.info(f"Sweeping voltage value from 0V to {max_voltage}.")
+		if sweep_direction != sweepDirection.BOTH:
 			self.set_sm_output(
 				output=sourcemeterOutput.VOLTAGE,
 				value=max_voltage,
 				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.FORWARD,
+				sweepdir=sweep_direction,
 			)
-			i, v, _ = self.read_output()
-			return [i, v]
-
-		elif sweep_direction == sweepDirection.REVERSE:
-			self.set_sm_output(
-				output=sourcemeterOutput.VOLTAGE,
-				value=max_voltage,
-				mode=sourcemeterMode.SWEEP,
-				sweepdir=sweepDirection.REVERSE,
-			)
-			logger.info(f"Sweeping voltage value from {max_voltage}V to 0V.")
 			i, v, _ = self.read_output()
 			return [i, v]
 
 		else:
-			logger.info(f"Sweeping voltage value from 0V to {max_voltage}V.")
 			self.set_sm_output(
 				output=sourcemeterOutput.VOLTAGE,
 				value=max_voltage,
@@ -206,7 +195,6 @@ class dummyK2400Controller(SourcemeterController):
 				mode=sourcemeterMode.SWEEP,
 				sweepdir=sweepDirection.REVERSE,
 			)
-			logger.info(f"Sweeping voltage value from {max_voltage} to 0V.")
 			iBcwd, vBcwd, _ = self.read_output()
 
 			return [iFwd, iBcwd, vFwd, vBcwd]
