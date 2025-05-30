@@ -141,11 +141,15 @@ class dummyK2400Controller(SourcemeterController):
 					logger.debug(f":source:{output.value}:start 0.0")
 					logger.debug(f":source:{output.value}:stop {value}")
 					logger.info(f"Sweeping {output.value} value from 0 to {value}.")
+					logger.debug(f":source:{output.value} {value}")
+					logger.debug(":output on")
 
 				elif sweepdir == sweepDirection.REVERSE:
 					logger.debug(f":source:{output.value}:start {value}")
 					logger.debug(f":source:{output.value}:stop 0.0")
 					logger.info(f"Sweeping {output.value} value from {value} to 0.")
+					logger.debug(f":source:{output.value} {value}")
+					logger.debug(":output on")
 
 			else:
 				logger.debug(f":source:function {output.value}")
@@ -159,5 +163,8 @@ class dummyK2400Controller(SourcemeterController):
 	def read_output(self) -> Sequence[Any]:
 		logger.info("Beep boop, reading current, voltage, time.")
 		return [0.004, 0.96, 1.0]
+
+	def output_off(self) -> None:
+		logger.info(":output off")
 
 	# TO DO: implement dummy setters to change output values

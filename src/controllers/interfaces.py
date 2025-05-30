@@ -88,6 +88,10 @@ class SourcemeterController(ABC):
 	def read_output(self) -> Sequence[Any]:
 		pass
 
+	@abstractmethod
+	def output_off(self) -> None:
+		pass
+
 
 class ShutterContext(ABC):
 	@abstractmethod

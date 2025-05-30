@@ -1,5 +1,6 @@
 # type: ignore
 import time
+import numpy as np
 
 from typing import Sequence, Any
 
@@ -8,6 +9,7 @@ from controllers.interfaces import SourcemeterController, sweepDirection, source
 # from utils.determine_vmpp import determine_mpp
 # from utils.custom_exceptions import OutputLimitsExceededError
 from utils.logger_config import setup_logger
+from utils.constants import SWEEP_RATE
 
 logger = setup_logger()
 
@@ -25,8 +27,6 @@ class MaximumPowerPointTracker:
 		self.cell_area: float = cell_area
 		self.tracking_time: int = tracking_time
 
-		self.initial_vmpp: float = 0
-
 	def find_open_circuit_voltage(self, hold_time: int = 5) -> float:
 		self.sm.set_sm_output(output=sourcemeterOutput.CURRENT, value=0, mode=sourcemeterMode.FIXED)
 		logger.info(
@@ -36,10 +36,7 @@ class MaximumPowerPointTracker:
 		logger.info("Measuring open circuit voltage...")
 		_, Voc, _ = self.sm.read_output()
 		logger.info(f"Device Voc measured as {Voc} V.")
-		if self.dummyMode:
-			logger.info(":output off")
-		else:
-			self.sm.resource.write(":output off")
+		self.sm.output_off()
 		return Voc
 
 	def jv_sweep(self, max_voltage: float, sweep_direction: sweepDirection) -> Sequence[Any]:
@@ -51,6 +48,7 @@ class MaximumPowerPointTracker:
 				sweepdir=sweep_direction,
 			)
 			i, v, _ = self.sm.read_output()
+			self.sm.output_off()
 			return [i, v]
 
 		else:
@@ -71,18 +69,32 @@ class MaximumPowerPointTracker:
 			iBcwd, vBcwd, _ = self.sm.read_output()
 			# TO DO: return proxy JV array for MPP calculation
 
-	# !--------------------- UNFISNISHED IMPLEMENTATIONS BELOW -----------------------------!
-	# @property
-	# def npoints(self):
-	# 	return self._npoints
+			self.sm.output_off()
+			return [iFwd, iBcwd, vFwd, vBcwd]
 
-	# def find_initial_vmpp(self):
-	# 	Voc = self._sm.find_open_circuit_voltage()
-	# 	jv_data = self._sm.jv_sweep(start_voltage=Voc, end_voltage=0, sweep_direction=sweepDirection.REVERSE)
-	# 	self.initial_vmpp = determine_mpp(
-	# 		jv_data
-	# 	)  # add setter function to check this value before it's set and run away with
-	# 	return self.initial_vmpp
+	@property
+	def nPoints(self):
+		return self._npoints
+
+	@nPoints.setter
+	def nPoints(self, Voc: float):
+		self._nPoints = Voc / (0.05 * SWEEP_RATE)  # voltage (V) / (delay (S) * sweep_rate (V/s))
+
+	def find_initial_vmpp(self):
+		Voc = self.find_open_circuit_voltage()
+		jv_sweep = self.jv_sweep(
+			max_voltage=Voc,
+			sweep_direction=sweepDirection.REVERSE,
+		)
+		jv_sweep = np.reshape(jv_sweep, (-1, 2))
+
+		# self.initial_vmpp = determine_mpp(
+		# 	jv_data
+		# )
+
+		return self.initial_vmpp
+
+	# !--------------------- UNFISNISHED IMPLEMENTATIONS BELOW -----------------------------!
 
 	# def walk_to_initial_vmpp(self):
 	# 	Vset = 0

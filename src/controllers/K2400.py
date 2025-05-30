@@ -168,10 +168,17 @@ class K2400Controller(SourcemeterController):
 					self.resource.write(f":source:{output.value}:start 0.0")
 					self.resource.write(f":source:{output.value}:stop {value}")
 					logger.info(f"Sweeping {output.value} value from 0 to {value}.")
+
+					self.resource.write(f":source:{output.value} {value}")
+					self.resource.write(":output on")
+
 				elif sweepdir == sweepDirection.REVERSE:
 					self.resource.write(f":source:{output.value}:start {value}")
 					self.resource.write(f":source:{output.value}:stop 0.0")
 					logger.info(f"Sweeping {output.value} value from {value} to 0.")
+
+					self.resource.write(f":source:{output.value} {value}")
+					self.resource.write(":output on")
 
 			else:
 				self.resource.write(f":source:function {output.value}")
@@ -187,3 +194,6 @@ class K2400Controller(SourcemeterController):
 	def read_output(self) -> Sequence[Any]:
 		i, v, t = self.resource.query_ascii_values(message="READ?")  # type: ignore
 		return [i, v, t]
+
+	def output_off(self) -> None:
+		self.resource.write(":output off")
