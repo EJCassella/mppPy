@@ -27,6 +27,10 @@ from controllers.interfaces import (
 
 from utils.constants import VOLTAGE_PROTECTION, CURRENT_COMPLIANCE
 
+import os
+
+print(os.getcwd())
+
 
 def main() -> None:
 	args = parse_arguments(sys.argv[1:])
@@ -71,8 +75,7 @@ def main() -> None:
 					dummyMode=tracker_config.dummy,
 				)
 
-				mppt.find_open_circuit_voltage()
-				mppt.jv_sweep(max_voltage=1.2, sweep_direction=sweepDirection.BOTH)
+				mppt.find_initial_vmpp()
 
 		except OutputLimitsExceededError as e:
 			logger.error(f"Safe output limits exceeded: {e}")

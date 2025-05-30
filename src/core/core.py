@@ -1,6 +1,7 @@
 # type: ignore
 import time
 import numpy as np
+import pandas as pd
 
 from typing import Sequence, Any
 
@@ -10,6 +11,7 @@ from controllers.interfaces import SourcemeterController, sweepDirection, source
 # from utils.custom_exceptions import OutputLimitsExceededError
 from utils.logger_config import setup_logger
 from utils.constants import SWEEP_RATE
+from utils.utils import calc_mpp_from_iv
 
 logger = setup_logger()
 
@@ -86,13 +88,15 @@ class MaximumPowerPointTracker:
 			max_voltage=Voc,
 			sweep_direction=sweepDirection.REVERSE,
 		)
-		jv_sweep = np.reshape(jv_sweep, (-1, 2))
+		if self.dummyMode:
+			jv_sweep = pd.read_csv("tests/data/jv_test_data.csv", header=None).to_numpy()
+		else:
+			jv_sweep = np.reshape(jv_sweep, (-1, 2))
 
-		# self.initial_vmpp = determine_mpp(
-		# 	jv_data
-		# )
+		initial_Vmpp = calc_mpp_from_iv(jv_sweep)
+		logger.info(f"Initial Vmpp found: {initial_Vmpp}")
 
-		return self.initial_vmpp
+		return initial_Vmpp
 
 	# !--------------------- UNFISNISHED IMPLEMENTATIONS BELOW -----------------------------!
 
